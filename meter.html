@@ -1,0 +1,176 @@
+<head>
+    <meta charset="utf-8">    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/2.3.0/fabric.min.js" ></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script> 
+
+<body>        
+        <center>
+        <canvas id="c" style="border:1px solid black;" width="700px" height="450px" ></canvas>
+        <br>        
+        <table width="700px" cellspacing="0" cellspadding="0" style="border:1px solid black;">
+        <tr>
+            <td nowrap align="left">&nbsp;Raw meter data:<b><span id="rawMeterData">?</span></b></td>
+            <td nowrap align="right"><b><span id="counter">?</span></b>&nbsp;</td>            
+        </tr>
+        </table>
+        <br>    
+		<a href="info">info</a>
+        </center>
+</body>
+
+<script>
+var meterUrl =  "http://neonowy:8080/meterData"
+// dla canvasa 800x600
+var global_X_origin = 350;
+var global_Y_origin = 400;
+
+var needle;
+
+var counter = 0;
+
+
+function cx(x) {
+    return  global_X_origin + x;
+}
+function cy(y) {
+    return  global_Y_origin - y;
+}
+
+function rad( a ) {
+    return a*Math.PI/180;
+}
+
+
+function GetNeedle( angle ) {
+    var len = 320;
+    var points = [cx(0),cy(0),cx(len*Math.cos(rad(angle))),cy(len*Math.sin(rad(angle)))];                
+    return new fabric.Line(
+                         points, {
+                         strokeWidth: 3,
+                         fill: 'navy',
+                         stroke: 'navy',
+                         originX: 'center',
+                         originY: 'center',
+                         objectCaching: true,                         
+                         selectable: false                         
+                     } );    
+}
+
+(function() {
+        var canvas = new fabric.Canvas( 'c' );
+        
+            var mainScale = new fabric.Circle({
+                radius: 300,
+                left: cx(-300),
+                top: cy(300),
+                angle: 0,
+                startAngle: rad(210),
+                endAngle: rad(330),
+                stroke: 'black',
+                strokeWidth: 2,
+                fill: '',
+                selectable: false
+                });
+            canvas.add( mainScale );        
+            
+            var overScale = new fabric.Circle({
+                radius: 300,
+                left: cx(-300),
+                top: cy(300),
+                angle: 0,
+                startAngle: rad(309),
+                endAngle: rad(330),
+                stroke: 'red',
+                strokeWidth: 8,
+                fill: '',
+                selectable: false
+                });
+                
+            canvas.add( overScale );        
+
+            var centerScale = new fabric.Circle({
+                radius: 8,
+                left: cx(-8),
+                top: cy(8),
+                angle: 0,
+                startAngle: 0,
+                endAngle: 360,
+                stroke: 'black',
+                strokeWidth: 0,
+                fill: 'black',
+                selectable: false
+                });
+                
+            canvas.add( centerScale );        
+            
+            
+            needle = GetNeedle( 0 );                  
+            canvas.add( needle );                
+                             
+        for (var angle = 0; angle < 121; angle++ ) {
+            
+            if ( (angle % 10) == 0) {
+                var label = ((120-angle)/10).toFixed(0);
+                canvas.add(                
+                    new fabric.Textbox(
+                            ""+label , 
+                            {
+                                left: cx(350*Math.cos(rad(31+angle))),
+                                top: cy(350*Math.sin(rad(31+angle))),
+                                width: 150,
+                                fontSize: 20,
+                                angle: (60-angle)
+                            }
+                     )
+                )        
+            }            
+
+            var tipLen = angle % 5 ? 10 : angle % 10 ? 15 : 25;
+            
+            canvas.add(
+                new fabric.Line(
+                         [  cx(300*Math.cos(rad(30+angle))),
+                            cy(300*Math.sin(rad(30+angle))),
+                            cx((300+tipLen)*Math.cos(rad(30+angle))),
+                            cy((300+tipLen)*Math.sin(rad(30+angle)))
+                         ], 
+                         {
+                         strokeWidth: 1,
+                         fill: 'black',
+                         stroke: 'black',
+                         originX: 'center',
+                         originY: 'center'
+                         } 
+                )                
+            );                
+        }
+        
+        setInterval( checkPointerPosition, 500 );         
+        
+        function checkPointerPosition() {  
+            var httpRequest = new XMLHttpRequest();           
+            httpRequest.onreadystatechange = function() {        
+                if (this.readyState == 4 && this.status == "200") {
+                    var meterNum = this.responseText;
+ //meterNum=6000;//11900;
+                    meterNum = Math.abs( meterNum / 100 );
+                    document.getElementById("rawMeterData").innerHTML = meterNum;
+                    needleAngle = 30+120-meterNum;
+                    canvas.remove( needle );                        
+                    needle = GetNeedle( needleAngle );
+                    canvas.add( needle );
+                    document.getElementById("counter").innerHTML = counter++;
+                }
+            };                
+            httpRequest.open( "GET", meterUrl, true );            
+            httpRequest.send();    
+        }
+         
+})();
+
+</script>
+        
+</head>
+
+
+</html>
