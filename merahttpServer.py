@@ -40,20 +40,14 @@ class myHandler( BaseHTTPRequestHandler ):
 			self.send_header('Content-type','text/html')
 			self.end_headers()
 			f = open( curdir + sep + 'meter.html' )                 
-			self.wfile.write(f.read())
+			self.wfile.write( f.read() )
 			f.close()    
 			
 		elif self.path == "/meterData":		# ajax calls
-			s = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
-			s.connect( ("neonowy", 5555) )
-			s.sendall( ":meter:display?" )
-			resp = s.recv( 1024 )
-			print 'meterData:', resp.strip()
-			s.close()
 			self.send_response(200)
 			self.send_header('Content-type','text/plain')
 			self.end_headers()
-			self.wfile.write( resp.strip() )
+			self.wfile.write( scpiCall( ":meter:display?" ) )
 			
 		else:
 			self.wfile.write(":(")
